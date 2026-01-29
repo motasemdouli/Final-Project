@@ -110,10 +110,6 @@ Recommended improvements
 - Add badges (build / tests / k6 summary) to README.
 - Document test data and any required accounts or credentials (use `.env` and ignore secrets).
 
-License & Author
-----------------
-- Author: motasemdouli
-- License: (add your preferred license file, e.g., MIT — include LICENSE in repo)
 
 Contact
 -------
