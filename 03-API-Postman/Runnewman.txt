@@ -1,0 +1,4 @@
+cd C:\newman
+newman run postman.json -e env.json -d login_data.csv -r htmlextra
+
+

@@ -1,0 +1,4 @@
+Run K6 : 
+cd C:\testperformance
+k6 run K6test.js
+k6 run -e TEST_TYPE=load K6test.js
