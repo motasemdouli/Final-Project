@@ -1,0 +1,47 @@
+name: API Performance Tests - k6
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  k6-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Locate k6 script
+        id: k6path
+        shell: bash
+        run: |
+          K6_SCRIPT=$(find . -type f -name "K6test.js" | head -n 1)
+          echo "K6 script: $K6_SCRIPT"
+          if [ -z "$K6_SCRIPT" ]; then
+            echo " K6test.js not found in the repository."
+            exit 1
+          fi
+          echo "script=$K6_SCRIPT" >> $GITHUB_OUTPUT
+
+      - name: Run k6 smoke test (default)
+        shell: bash
+        run: |
+          mkdir -p k6-results
+          k6 run "${{ steps.k6path.outputs.script }}" | tee k6-results/smoke.txt
+
+      - name: Run k6 load test (TEST_TYPE=load)
+        shell: bash
+        run: |
+          k6 run -e TEST_TYPE=load "${{ steps.k6path.outputs.script }}" | tee k6-results/load.txt
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results
+          path: k6-results
