@@ -1,0 +1,73 @@
+name: API Tests - Newman (Data Driven)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  newman-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Newman + HTML Reporter
+        run: |
+          npm install -g newman newman-reporter-htmlextra
+
+      - name: Locate Postman files
+        id: paths
+        shell: bash
+        run: |
+          COLLECTION_PATH=$(find . -type f -name "FinalProjectApiTest.postman_collection.json" | head -n 1)
+          ENV_PATH=$(find . -type f -name "DummyJSON Environment.postman_environment.json" | head -n 1)
+          DATA_PATH=$(find . -type f -name "login_data.csv" | head -n 1)
+
+          echo "Collection: $COLLECTION_PATH"
+          echo "Environment: $ENV_PATH"
+          echo "Data: $DATA_PATH"
+
+          if [ -z "$COLLECTION_PATH" ] || [ -z "$ENV_PATH" ] || [ -z "$DATA_PATH" ]; then
+            echo " One or more required files were not found in the repository."
+            echo "Make sure these files exist in your repo:"
+            echo "- FinalProjectApiTest.postman_collection.json"
+            echo "- DummyJSON Environment.postman_environment.json"
+            echo "- login_data.csv"
+            exit 1
+          fi
+
+          echo "collection=$COLLECTION_PATH" >> $GITHUB_OUTPUT
+          echo "env=$ENV_PATH" >> $GITHUB_OUTPUT
+          echo "data=$DATA_PATH" >> $GITHUB_OUTPUT
+
+      - name: Run API tests (Data Driven) + Generate HTML Report
+        shell: bash
+        run: |
+          mkdir -p newman
+          newman run "${{ steps.paths.outputs.collection }}" \
+            -e "${{ steps.paths.outputs.env }}" \
+            -d "${{ steps.paths.outputs.data }}" \
+            -r htmlextra \
+            --reporter-htmlextra-export "newman/newman-report.html" \
+            --reporter-htmlextra-title "Final Project - Newman Report"
+
+      - name: Upload Newman HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-html-report
+          path: newman/newman-report.html
+
+      - name: Upload Newman CLI Output Folder (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-output
+          path: newman
